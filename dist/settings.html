@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>X for Windows 設定</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 22px 90px;
+    background: #000; color: #e7e9ea;
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif; font-size: 14px;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .ver { color: #71767b; font-size: 12px; margin-bottom: 18px; }
+  h2 {
+    font-size: 15px; margin: 26px 0 6px; padding-top: 18px;
+    border-top: 1px solid #2f3336;
+  }
+  .note { color: #71767b; font-size: 12px; margin: 0 0 12px; }
+  .row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; cursor: pointer;
+  }
+  .row span { flex: 1; }
+  input[type="checkbox"] { width: 17px; height: 17px; accent-color: #1d9bf0; }
+  input[type="text"] {
+    background: #000; color: #e7e9ea; border: 1px solid #333639;
+    border-radius: 6px; padding: 6px 9px; font-size: 13px; width: 220px;
+  }
+  select {
+    background: #000; color: #e7e9ea; border: 1px solid #333639;
+    border-radius: 6px; padding: 6px 8px; font-size: 13px;
+  }
+  .pat-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .pat-row .lbl { flex: 1; }
+  .pat-row button {
+    background: #16181c; color: #e7e9ea; border: 1px solid #333639;
+    border-radius: 6px; width: 30px; height: 26px; cursor: pointer; font-size: 13px;
+  }
+  .pat-row button:disabled { opacity: .35; cursor: default; }
+  #preview {
+    color: #71767b; font-size: 12.5px; margin: 8px 0 2px;
+    word-break: break-all;
+  }
+  #preview b { color: #e7e9ea; font-weight: 600; }
+  .footer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.92); border-top: 1px solid #2f3336;
+    padding: 12px 22px; display: flex; align-items: center; gap: 14px;
+  }
+  #save {
+    background: #1d9bf0; color: #fff; border: 0; border-radius: 999px;
+    padding: 9px 26px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  #save:hover { background: #1a8cd8; }
+  #status { color: #00ba7c; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>X for Windows 設定</h1>
+<div class="ver">バージョン 0.2.0</div>
+
+<h2>メディア保存</h2>
+<p class="note">Media Harvest 風の保存設定。この設定は保存後すぐに反映されます。</p>
+
+<label class="row"><input type="checkbox" id="ask_each"><span>ファイルごとに保存先を指定する</span></label>
+
+<p class="note" style="margin-top:14px">ファイル名パターン（使う項目にチェック、↑↓で並び替え）</p>
+<div id="pattern"></div>
+<div id="preview"></div>
+
+<label class="row" style="margin-top:14px"><input type="checkbox" id="subdir_enabled"><span>サブディレクトリを作成する</span></label>
+<div class="row" style="cursor:default">
+  <span style="flex:0 0 auto">サブディレクトリ名</span>
+  <input type="text" id="subdir_name">
+</div>
+<p class="note">保存先は「ダウンロード」フォルダです。</p>
+
+<h2>Control Panel for Twitter</h2>
+<p class="note">変更はアプリの再起動後に反映されます。</p>
+<div id="cpt_toggles"></div>
+
+<div class="row" style="cursor:default">
+  <span>認証バッジ</span>
+  <select id="twitterBlueChecks">
+    <option value="replace">鳥マークに置き換える</option>
+    <option value="ignore">そのまま（青いチェック）</option>
+    <option value="hide">隠す</option>
+  </select>
+</div>
+<label class="row"><input type="checkbox" id="badge_fix"><span>認証バッジ（鳥）の重なりを修正する（少し小さく表示）</span></label>
+
+<div class="footer">
+  <button id="save">保存</button>
+  <span id="status"></span>
+</div>
+
+<script>
+var invoke =
+  (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) ||
+  (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
+
+var CPT_TOGGLES = [
+  ['alwaysUseLatestTweets', 'ホームは「フォロー中（時系列）」を既定にする', true],
+  ['hideForYouTimeline', '「おすすめ」タブを隠す', true],
+  ['defaultToLatestSearch', '検索は「最新」タブを既定にする', false],
+  ['hideViews', '閲覧数を隠す', true],
+  ['hideMetrics', 'すべての数字を隠す（いいね・リポスト・返信など）', false],
+  ['hideLikeMetrics', 'いいね数を隠す', true],
+  ['hideReplyMetrics', '返信数を隠す', true],
+  ['hideRetweetMetrics', 'リポスト数を隠す', true],
+  ['hideBookmarkMetrics', 'ブックマーク数を隠す', true],
+  ['hideFollowingMetrics', 'フォロー / フォロワー数を隠す', true],
+  ['hideTwitterBlueUpsells', 'Premium の勧誘を隠す', true],
+  ['hideGrokNav', '左ナビの Grok を隠す', true],
+  ['hideGrokTweets', 'Grok の投稿を隠す', false],
+  ['hideWhoToFollowEtc', 'おすすめユーザーなどを隠す', true],
+  ['hideSidebarContent', '右サイドバーの中身を隠す', true],
+  ['hideMessagesDrawer', '画面下の DM ドロワーを隠す', true],
+  ['hideSubscriptions', 'サブスクリプション関連を隠す', true],
+  ['hideInlinePrompts', 'タイムライン途中のプロンプトを隠す', true],
+  ['fullWidthMedia', 'メディアを全幅で表示する', true],
+  ['fullWidthContent', 'コンテンツ全体を全幅で表示する', false],
+  ['addAddMutedWordMenuItem', '「もっと見る」に「ミュートするキーワードを追加」を出す', true],
+  ['replaceLogo', 'ロゴや投稿ボタンの文言を Twitter 時代に戻す', true]
+];
+
+var TOKENS = [
+  ['account', 'アカウントID'],
+  ['tweet', 'ツイートID'],
+  ['serial', 'シリアル番号'],
+  ['date', 'ダウンロード日付']
+];
+var SAMPLE = { account: '306048589', tweet: '1145141919810', serial: '02', date: '' };
+(function () {
+  var d = new Date();
+  function p(n) { return String(n).padStart(2, '0'); }
+  SAMPLE.date = '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+})();
+
+var patOrder = TOKENS.map(function (t) { return t[0]; });
+var patEnabled = {};
+
+function renderPattern() {
+  var wrap = document.getElementById('pattern');
+  wrap.innerHTML = '';
+  patOrder.forEach(function (id, idx) {
+    var label = TOKENS.filter(function (t) { return t[0] === id; })[0][1];
+    var row = document.createElement('div');
+    row.className = 'pat-row';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!patEnabled[id];
+    cb.addEventListener('change', function () {
+      patEnabled[id] = cb.checked;
+      renderPreview();
+    });
+    var lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = label;
+    var up = document.createElement('button');
+    up.textContent = '↑';
+    up.disabled = idx === 0;
+    up.addEventListener('click', function () {
+      var t = patOrder[idx - 1]; patOrder[idx - 1] = patOrder[idx]; patOrder[idx] = t;
+      renderPattern();
+    });
+    var dn = document.createElement('button');
+    dn.textContent = '↓';
+    dn.disabled = idx === patOrder.length - 1;
+    dn.addEventListener('click', function () {
+      var t = patOrder[idx + 1]; patOrder[idx + 1] = patOrder[idx]; patOrder[idx] = t;
+      renderPattern();
+    });
+    row.appendChild(cb); row.appendChild(lbl); row.appendChild(up); row.appendChild(dn);
+    wrap.appendChild(row);
+  });
+  renderPreview();
+}
+
+function renderPreview() {
+  var parts = patOrder.filter(function (id) { return patEnabled[id]; })
+    .map(function (id) { return SAMPLE[id]; });
+  var name = (parts.length ? parts.join('-') : SAMPLE.tweet) + '.jpg';
+  document.getElementById('preview').innerHTML = '例： <b>' + name + '</b>';
+}
+
+function renderCpt(cpt) {
+  var wrap = document.getElementById('cpt_toggles');
+  wrap.innerHTML = '';
+  CPT_TOGGLES.forEach(function (t) {
+    var key = t[0], label = t[1], def = t[2];
+    var row = document.createElement('label');
+    row.className = 'row';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'cpt_' + key;
+    cb.checked = (key in cpt) ? !!cpt[key] : def;
+    var span = document.createElement('span');
+    span.textContent = label;
+    row.appendChild(cb); row.appendChild(span);
+    wrap.appendChild(row);
+  });
+}
+
+invoke('get_settings').then(function (s) {
+  document.getElementById('ask_each').checked = !!s.media.ask_each;
+  document.getElementById('subdir_enabled').checked = !!s.media.subdir_enabled;
+  document.getElementById('subdir_name').value = s.media.subdir_name || '';
+  patEnabled = {};
+  (s.media.pattern || []).forEach(function (id) { patEnabled[id] = true; });
+  patOrder = (s.media.pattern || []).slice();
+  TOKENS.forEach(function (t) { if (patOrder.indexOf(t[0]) < 0) patOrder.push(t[0]); });
+  renderPattern();
+  renderCpt(s.cpt || {});
+  document.getElementById('twitterBlueChecks').value =
+    (s.cpt && s.cpt.twitterBlueChecks) || 'replace';
+  document.getElementById('badge_fix').checked = s.badge_fix !== false;
+}).catch(function (e) {
+  document.getElementById('status').textContent = '設定の読み込みに失敗しました: ' + e;
+});
+
+document.getElementById('save').addEventListener('click', function () {
+  var cpt = {};
+  CPT_TOGGLES.forEach(function (t) {
+    cpt[t[0]] = document.getElementById('cpt_' + t[0]).checked;
+  });
+  cpt.twitterBlueChecks = document.getElementById('twitterBlueChecks').value;
+  var settings = {
+    cpt: cpt,
+    media: {
+      ask_each: document.getElementById('ask_each').checked,
+      pattern: patOrder.filter(function (id) { return patEnabled[id]; }),
+      subdir_enabled: document.getElementById('subdir_enabled').checked,
+      subdir_name: document.getElementById('subdir_name').value
+    },
+    badge_fix: document.getElementById('badge_fix').checked
+  };
+  invoke('save_settings', { settings: settings }).then(function () {
+    document.getElementById('status').textContent =
+      '保存しました（CPT の変更は再起動後に反映されます）';
+  }).catch(function (e) {
+    document.getElementById('status').textContent = '保存に失敗しました: ' + e;
+  });
+});
+</script>
+</body>
+</html>

@@ -249,8 +249,13 @@
         });
       });
       Promise.all(jobs)
-        .then(function () {
-          toast('保存しました（' + list.length + '件）');
+        .then(function (results) {
+          var saved = results.filter(function (r) {
+            return r === 'saved';
+          }).length;
+          if (saved > 0) {
+            toast('保存しました（' + saved + '件）');
+          }
         })
         .catch(function () {
           toast('保存に失敗しました');

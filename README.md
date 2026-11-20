@@ -1,29 +1,31 @@
 # X for Windows
 
-A lightweight X (Twitter) client for Windows, built with Tauri v2 + WebView2.
-Created by **mushroom1729-xperia**, co-developed with AI (Muse).
+X（旧 Twitter）を Windows でアプリとして使うための軽量クライアントです。Tauri v2 + WebView2 で作られています。
+作者： **mushroom1729-xperia** / AI（Muse）との共同開発
 
-## Features
+## 機能
 
-- **X in its own window** — x.com wrapped in a small native shell (the browser engine is the system WebView2, shared with Windows).
-- **Control Panel for Twitter built in** — the [Control Panel for Twitter](https://github.com/insin/control-panel-for-twitter) user script (by insin) is injected at document start: chronological timeline by default, hide "For you", hide view counts, hide Grok, hide Premium upsells, and dozens more options. Its settings UI is available inside the page as usual.
-- **Promoted posts hidden** — tweets labelled プロモーション / Promoted / 広告 are removed from timelines automatically.
-- **One-click media downloads** — a download button is added to every tweet with media (inspired by [Media Harvest](https://github.com/EltonChou/TwitterMediaHarvest) by Elton Chou). Videos are saved at the highest available bitrate, photos at original size.
-  - Save folder: `Downloads/twitter_media_harvest/`
-  - Filename pattern: `{accountId}-{tweetId}-{serial}-{downloadDate}` (e.g. `306048589-1145141919810-02-20261120.jpg`)
-- **External links open in your default browser**; X and the sign-in flow stay in the app.
+- **X を専用ウィンドウで表示** — x.com を小さなネイティブシェルで包んだもの。ブラウザエンジンは Windows 標準の WebView2 を使うので軽量です。
+- **Control Panel for Twitter を内蔵** — [Control Panel for Twitter](https://github.com/insin/control-panel-for-twitter)（作者 insin）のユーザースクリプトをページ読み込み時に注入します。時系列タイムライン、「おすすめ」を隠す、閲覧数を隠す、Grok を隠す、Premium の勧誘を隠すなど。
+  - ユーザースクリプト版には設定 UI がないため、このアプリでは**タスクトレイのアイコン →「設定を開く」**から専用の設定画面で変更できます（反映にはアプリの再起動が必要）。
+  - 認証バッジを往年の鳥マークに置き換える機能は、名前の横で少し重なって見えたため、少し小さく表示する修正を入れています。
+- **プロモーション投稿を非表示** — 「プロモーション / Promoted / 広告」と表示される投稿をタイムラインから自動で取り除きます。
+- **メディアをワンクリック保存** — [Media Harvest](https://github.com/EltonChou/TwitterMediaHarvest)（作者 Elton Chou）に着想を得た保存ボタンを、メディア付きの投稿に追加します。動画は最高画質、画像は原寸で保存します。
+  - 保存先やファイル名のパターンは設定画面で変更できます（Media Harvest の設定画面と同じ項目を用意）。
+  - 既定： 保存先は「ダウンロード\twitter_media_harvest」、ファイル名は「アカウントID-ツイートID-連番-ダウンロード日付」（例： `306048589-1145141919810-02-20261120.jpg`）
+- **外部リンクは既定のブラウザで開く**。X 本体とログインの流れはアプリ内に残ります。
 
-## Downloads
+## ダウンロード
 
-See [Releases](https://github.com/mushroom1729-xperia/x-windows-app/releases): a portable exe (no install) and an NSIS setup exe.
+[Releases](https://github.com/mushroom1729-xperia/x-windows-app/releases) に、ポータブル版（インストール不要）と NSIS インストーラーがあります。
 
-## Notes
+## 注意
 
-- Sign in with your X username/password inside the app (social sign-in popups open in the browser instead).
-- Login state is stored in the app's own WebView2 profile, separate from your browser.
+- ログインはアプリ内で X の ID / パスワードを使ってください（Google ログインなどのポップアップはブラウザ側で開きます）。
+- ログイン状態はアプリ専用の WebView2 プロファイルに保存され、普段のブラウザとは分離されています。
 
-## License / credits
+## ライセンス / クレジット
 
-- This wrapper's own code: MIT.
-- Control Panel for Twitter: MIT, © insin — included as `src-tauri/assets/cpt.user.js`.
-- The X name and logo belong to X Corp. This is an unofficial personal project.
+- このラッパー自体のコード： MIT
+- Control Panel for Twitter： MIT、© insin — `src-tauri/assets/cpt.user.js` として同梱
+- X の名称とロゴは X Corp. のものです。これは非公式の個人プロジェクトです。

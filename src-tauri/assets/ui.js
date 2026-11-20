@@ -25,7 +25,95 @@
             return origWT(rewrite(t));
           };
         }
+        if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+          var origW = navigator.clipboard.write.bind(navigator.clipboard);
+          navigator.clipboard.write = function (items) {
+            var rebuilt = items.map(function (item) {
+              var data = {};
+              item.types.forEach(function (type) {
+                if (type === 'text/plain') {
+                  data[type] = item
+                    .getType(type)
+                    .then(function (b) { return b.text(); })
+                    .then(rewrite);
+                } else {
+                  data[type] = item.getType(type);
+                }
+              });
+              return new ClipboardItem(data);
+            });
+            return origW(rebuilt);
+          };
+        }
       } catch (e) {}
+      // Legacy path: the page selects a hidden field holding the URL and
+      // runs execCommand('copy') — rewrite that selection as it is copied.
+      document.addEventListener(
+        'copy',
+        function (e) {
+          try {
+            var sel = String(window.getSelection() || '').trim();
+            if (/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(sel)) {
+              var rw = rewrite(sel);
+              if (rw !== sel && e.clipboardData) {
+                e.preventDefault();
+                e.clipboardData.setData('text/plain', rw);
+              }
+            }
+          } catch (err) {}
+        },
+        true
+      );
+    }
+  }
+
+  // ---------- left sidebar item visibility ----------
+  var NAV_SELECTORS = {
+    home: ['header nav a[href="/home"]'],
+    explore: ['header nav a[href="/explore"]'],
+    notifications: ['header nav a[href="/notifications"]'],
+    messages: ['header nav a[href="/messages"]', 'header nav a[href="/i/chat"]'],
+    grok: ['header nav a[href="/i/grok"]'],
+    lists: ['header nav a[href$="/lists"]'],
+    bookmarks: ['header nav a[href="/bookmarks"]', 'header nav a[href="/i/bookmarks"]'],
+    communities: ['header nav a[href$="/communities"]'],
+    premium: ['header nav a[href="/premium"]', 'header nav a[href="/i/premium_sign_up"]'],
+    more: ['header nav [data-testid="AppTabBar_More_Menu"]']
+  };
+  var KNOWN_NAV_HREFS = [
+    '/home', '/explore', '/notifications', '/messages', '/i/chat',
+    '/i/grok', '/bookmarks', '/i/bookmarks', '/premium',
+    '/i/premium_sign_up', '/settings'
+  ];
+  function applyNavHiding() {
+    var hide = cfg.navHide || [];
+    if (!hide.length) return;
+    var css = '';
+    hide.forEach(function (key) {
+      (NAV_SELECTORS[key] || []).forEach(function (sel) {
+        css += sel + ' { display: none !important; }\n';
+      });
+    });
+    if (css && !document.getElementById('xw-nav-style')) {
+      var style = document.createElement('style');
+      style.id = 'xw-nav-style';
+      style.textContent = css;
+      (document.head || document.documentElement).appendChild(style);
+    }
+    if (hide.indexOf('profile') >= 0) {
+      // The profile link's href is /<username>, so find it by elimination.
+      document
+        .querySelectorAll('header nav a[href^="/"]')
+        .forEach(function (a) {
+          var href = a.getAttribute('href') || '';
+          if (
+            /^\/[A-Za-z0-9_]{1,30}$/.test(href) &&
+            KNOWN_NAV_HREFS.indexOf(href) === -1 &&
+            !/\/(lists|communities)$/.test(href)
+          ) {
+            a.style.setProperty('display', 'none', 'important');
+          }
+        });
     }
   }
 
@@ -36,12 +124,29 @@
       'h1 a[href="/home"] svg, header a[href="/home"] svg'
     );
     svgs.forEach(function (svg) {
-      if (svg.getAttribute('data-xw-logo')) return;
-      svg.setAttribute('data-xw-logo', '1');
-      svg.setAttribute('viewBox', '0 0 24 24');
+      if (svg.closest('nav')) return; // not the sidebar Home link
+      var cur = svg.querySelector('path');
+      if (cur && cur.getAttribute('d') === BIRD) return;
+      // Crop the viewBox around the bird so it renders larger.
+      svg.setAttribute('viewBox', '3.7 5.8 15.6 12.4');
       svg.innerHTML =
         '<path fill="#1D9BF0" d="' + BIRD + '"></path>';
     });
+  }
+
+  // ---------- old Twitter home icon ----------
+  var HOME_PATH =
+    'M12 2.8 L22 10.6 L19.8 10.6 L19.8 21 L4.2 21 L4.2 10.6 L2 10.6 Z ' +
+    'M9.2 21 L9.2 15.6 C9.2 14.2 10.4 13.2 12 13.2 C13.6 13.2 14.8 14.2 14.8 15.6 L14.8 21 Z';
+  function fixHomeIcon() {
+    if (!cfg.oldHomeIcon) return;
+    var svg = document.querySelector('header nav a[href="/home"] svg');
+    if (!svg) return;
+    var cur = svg.querySelector('path');
+    if (cur && cur.getAttribute('d') === HOME_PATH) return;
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.innerHTML =
+      '<path fill="currentColor" fill-rule="evenodd" d="' + HOME_PATH + '"></path>';
   }
 
   // ---------- wording: post -> tweet ----------
@@ -93,6 +198,7 @@
       root.querySelectorAll('[aria-label], [title]').forEach(processAttrs);
     }
     fixLogo(root);
+    fixHomeIcon();
   }
 
   var pending = [];
@@ -112,6 +218,7 @@
   }
 
   function start() {
+    applyNavHiding();
     processRoot(document.body || document.documentElement);
     var mo = new MutationObserver(function (muts) {
       for (var i = 0; i < muts.length; i++) {
@@ -123,6 +230,7 @@
         } else if (m.type === 'attributes') {
           processAttrs(m.target);
         }
+        if ((cfg.navHide || []).indexOf('profile') >= 0) applyNavHiding();
       }
     });
     mo.observe(document.documentElement, {

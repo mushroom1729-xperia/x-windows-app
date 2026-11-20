@@ -59,7 +59,7 @@
 </head>
 <body>
 <h1 id="app_title">X for Windows 設定</h1>
-<div class="ver" id="app_ver">バージョン 0.3.0</div>
+<div class="ver" id="app_ver">バージョン 0.4.0</div>
 
 <h2>メディア保存</h2>
 <p class="note">Media Harvest 風の保存設定。この設定は保存後すぐに反映されます。</p>
@@ -95,6 +95,7 @@
 <p class="note">変更はアプリの再起動後に反映されます。</p>
 <label class="row"><input type="checkbox" id="replace_terms"><span>「ポスト」を「ツイート」、「リポスト」を「リツイート」に置き換える</span></label>
 <label class="row"><input type="checkbox" id="replace_logo"><span>左上のロゴを鳥マークに戻す</span></label>
+<label class="row"><input type="checkbox" id="old_home_icon"><span>ホームのアイコンを旧 Twitter のアイコンにする</span></label>
 <div class="row" style="cursor:default">
   <span>共有・コピーするリンクのドメイン</span>
   <select id="share_sel">
@@ -109,6 +110,10 @@
   <span>カスタムドメイン</span>
   <input type="text" id="share_custom" placeholder="例: fxtwitter.com" style="flex:1">
 </div>
+
+<h2>左サイドバー</h2>
+<p class="note">表示する項目にチェック。変更はアプリの再起動後に反映されます。</p>
+<div id="sidebar_items"></div>
 
 <div class="footer">
   <button id="save">保存</button>
@@ -234,6 +239,38 @@ function renderCpt(cpt) {
   });
 }
 
+var SIDEBAR_ITEMS = [
+  ['home', 'ホーム'],
+  ['explore', '話題を検索'],
+  ['notifications', '通知'],
+  ['messages', 'メッセージ'],
+  ['grok', 'Grok'],
+  ['lists', 'リスト'],
+  ['bookmarks', 'ブックマーク'],
+  ['communities', 'コミュニティ'],
+  ['premium', 'プレミアム'],
+  ['profile', 'プロフィール'],
+  ['more', 'もっと見る']
+];
+
+function renderSidebar(sidebar) {
+  var wrap = document.getElementById('sidebar_items');
+  wrap.innerHTML = '';
+  SIDEBAR_ITEMS.forEach(function (it) {
+    var label = document.createElement('label');
+    label.className = 'row';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'sb_' + it[0];
+    cb.checked = !(sidebar && sidebar[it[0]] === false);
+    var span = document.createElement('span');
+    span.textContent = it[1];
+    label.appendChild(cb);
+    label.appendChild(span);
+    wrap.appendChild(label);
+  });
+}
+
 invoke('get_settings').then(function (s) {
   document.getElementById('ask_each').checked = !!s.media.ask_each;
   document.getElementById('subdir_enabled').checked = !!s.media.subdir_enabled;
@@ -258,6 +295,8 @@ invoke('get_settings').then(function (s) {
     document.getElementById('share_sel').value = '__custom';
     document.getElementById('share_custom').value = sd;
   }
+  document.getElementById('old_home_icon').checked = s.old_home_icon !== false;
+  renderSidebar(s.sidebar || {});
 }).catch(function (e) {
   document.getElementById('status').textContent = '設定の読み込みに失敗しました: ' + e;
 });
@@ -283,6 +322,14 @@ document.getElementById('save').addEventListener('click', function () {
       var v = document.getElementById('share_sel').value;
       if (v === '__custom') return document.getElementById('share_custom').value.trim();
       return v;
+    })(),
+    old_home_icon: document.getElementById('old_home_icon').checked,
+    sidebar: (function () {
+      var o = {};
+      SIDEBAR_ITEMS.forEach(function (it) {
+        o[it[0]] = document.getElementById('sb_' + it[0]).checked;
+      });
+      return o;
     })()
   };
   invoke('save_settings', { settings: settings }).then(function () {

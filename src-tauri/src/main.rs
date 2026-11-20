@@ -88,6 +88,10 @@ struct Settings {
     replace_logo: bool,
     #[serde(default)]
     share_domain: String,
+    #[serde(default)]
+    sidebar: Map<String, Value>,
+    #[serde(default = "default_true")]
+    old_home_icon: bool,
 }
 
 fn default_true() -> bool {
@@ -103,6 +107,8 @@ impl Default for Settings {
             replace_terms: true,
             replace_logo: true,
             share_domain: String::new(),
+            sidebar: Map::new(),
+            old_home_icon: true,
         }
     }
 }
@@ -342,12 +348,20 @@ fn main() {
         .setup(|app| {
             let settings = load_settings(app.handle());
             let cpt = build_cpt_script(&settings);
+            let nav_hide: Vec<String> = settings
+                .sidebar
+                .iter()
+                .filter(|(_, v)| v.as_bool() == Some(false))
+                .map(|(k, _)| k.clone())
+                .collect();
             let ui_cfg = format!(
-                "window.__XW_CFG__ = {{ replaceTerms: {}, replaceLogo: {}, shareDomain: {} }};",
+                "window.__XW_CFG__ = {{ replaceTerms: {}, replaceLogo: {}, shareDomain: {}, navHide: {}, oldHomeIcon: {} }};",
                 settings.replace_terms,
                 settings.replace_logo,
                 serde_json::to_string(&settings.share_domain)
-                    .unwrap_or_else(|_| "\"\"".to_string())
+                    .unwrap_or_else(|_| "\"\"".to_string()),
+                serde_json::to_string(&nav_hide).unwrap_or_else(|_| "[]".to_string()),
+                settings.old_home_icon
             );
             app.manage(AppState(Mutex::new(settings)));
             let product = app

@@ -1,7 +1,13 @@
 fn main() {
     tauri_build::try_build(
-        tauri_build::Attributes::new()
-            .app_manifest(tauri_build::AppManifest::new().commands(&["download_media", "get_settings", "save_settings"])),
+        tauri_build::Attributes::new().app_manifest(
+            tauri_build::AppManifest::new().commands(&[
+                "download_media",
+                "get_settings",
+                "save_settings",
+                "restart_app",
+            ]),
+        ),
     )
     .expect("failed to run tauri build");
 }

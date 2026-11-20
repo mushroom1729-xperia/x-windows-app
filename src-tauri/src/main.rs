@@ -14,6 +14,7 @@ use tauri::{AppHandle, Manager, State, Url, WebviewUrl, WebviewWindowBuilder};
 
 const CPT_SCRIPT: &str = include_str!("../assets/cpt.user.js");
 const HARVEST_SCRIPT: &str = include_str!("../assets/harvest.js");
+const UI_SCRIPT: &str = include_str!("../assets/ui.js");
 
 // CSS which shrinks CPT's replacement (classic bird) verified badge a little
 // so it does not crowd / overlap the display name next to it.
@@ -81,6 +82,12 @@ struct Settings {
     media: MediaSettings,
     #[serde(default = "default_true")]
     badge_fix: bool,
+    #[serde(default = "default_true")]
+    replace_terms: bool,
+    #[serde(default = "default_true")]
+    replace_logo: bool,
+    #[serde(default)]
+    share_domain: String,
 }
 
 fn default_true() -> bool {
@@ -93,6 +100,9 @@ impl Default for Settings {
             cpt: Map::new(),
             media: MediaSettings::default(),
             badge_fix: true,
+            replace_terms: true,
+            replace_logo: true,
+            share_domain: String::new(),
         }
     }
 }
@@ -305,6 +315,11 @@ async fn download_media(
 
 // ---------- windows ----------
 
+#[tauri::command]
+fn restart_app(app: AppHandle) {
+    app.restart();
+}
+
 fn open_settings_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
         let _ = w.show();
@@ -327,6 +342,13 @@ fn main() {
         .setup(|app| {
             let settings = load_settings(app.handle());
             let cpt = build_cpt_script(&settings);
+            let ui_cfg = format!(
+                "window.__XW_CFG__ = {{ replaceTerms: {}, replaceLogo: {}, shareDomain: {} }};",
+                settings.replace_terms,
+                settings.replace_logo,
+                serde_json::to_string(&settings.share_domain)
+                    .unwrap_or_else(|_| "\"\"".to_string())
+            );
             app.manage(AppState(Mutex::new(settings)));
             let product = app
                 .config()
@@ -356,6 +378,8 @@ fn main() {
             .title(product.clone())
             .inner_size(1100.0, 800.0)
             .initialization_script(&cpt)
+            .initialization_script(&ui_cfg)
+            .initialization_script(UI_SCRIPT)
             .initialization_script(HARVEST_SCRIPT)
             .on_navigation(|url| {
                 if is_allowed_host(url) {
@@ -377,7 +401,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             download_media,
             get_settings,
-            save_settings
+            save_settings,
+            restart_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

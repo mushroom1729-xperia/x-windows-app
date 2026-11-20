@@ -59,7 +59,7 @@
 </head>
 <body>
 <h1 id="app_title">X for Windows 設定</h1>
-<div class="ver" id="app_ver">バージョン 0.2.0</div>
+<div class="ver" id="app_ver">バージョン 0.3.0</div>
 
 <h2>メディア保存</h2>
 <p class="note">Media Harvest 風の保存設定。この設定は保存後すぐに反映されます。</p>
@@ -91,8 +91,28 @@
 </div>
 <label class="row"><input type="checkbox" id="badge_fix"><span>認証バッジ（鳥）の重なりを修正する（少し小さく表示）</span></label>
 
+<h2>表示と共有</h2>
+<p class="note">変更はアプリの再起動後に反映されます。</p>
+<label class="row"><input type="checkbox" id="replace_terms"><span>「ポスト」を「ツイート」、「リポスト」を「リツイート」に置き換える</span></label>
+<label class="row"><input type="checkbox" id="replace_logo"><span>左上のロゴを鳥マークに戻す</span></label>
+<div class="row" style="cursor:default">
+  <span>共有・コピーするリンクのドメイン</span>
+  <select id="share_sel">
+    <option value="">そのまま（x.com）</option>
+    <option value="twitter.com">twitter.com</option>
+    <option value="fxtwitter.com">fxtwitter.com</option>
+    <option value="vxtwitter.com">vxtwitter.com</option>
+    <option value="__custom">カスタム</option>
+  </select>
+</div>
+<div class="row" style="cursor:default">
+  <span>カスタムドメイン</span>
+  <input type="text" id="share_custom" placeholder="例: fxtwitter.com" style="flex:1">
+</div>
+
 <div class="footer">
   <button id="save">保存</button>
+  <button id="restart" style="margin-left:8px">アプリを再起動</button>
   <span id="status"></span>
 </div>
 
@@ -227,6 +247,17 @@ invoke('get_settings').then(function (s) {
   document.getElementById('twitterBlueChecks').value =
     (s.cpt && s.cpt.twitterBlueChecks) || 'replace';
   document.getElementById('badge_fix').checked = s.badge_fix !== false;
+  document.getElementById('replace_terms').checked = s.replace_terms !== false;
+  document.getElementById('replace_logo').checked = s.replace_logo !== false;
+  var sd = s.share_domain || '';
+  var presets = ['', 'twitter.com', 'fxtwitter.com', 'vxtwitter.com'];
+  if (presets.indexOf(sd) >= 0) {
+    document.getElementById('share_sel').value = sd;
+    document.getElementById('share_custom').value = '';
+  } else {
+    document.getElementById('share_sel').value = '__custom';
+    document.getElementById('share_custom').value = sd;
+  }
 }).catch(function (e) {
   document.getElementById('status').textContent = '設定の読み込みに失敗しました: ' + e;
 });
@@ -245,13 +276,26 @@ document.getElementById('save').addEventListener('click', function () {
       subdir_enabled: document.getElementById('subdir_enabled').checked,
       subdir_name: document.getElementById('subdir_name').value
     },
-    badge_fix: document.getElementById('badge_fix').checked
+    badge_fix: document.getElementById('badge_fix').checked,
+    replace_terms: document.getElementById('replace_terms').checked,
+    replace_logo: document.getElementById('replace_logo').checked,
+    share_domain: (function () {
+      var v = document.getElementById('share_sel').value;
+      if (v === '__custom') return document.getElementById('share_custom').value.trim();
+      return v;
+    })()
   };
   invoke('save_settings', { settings: settings }).then(function () {
     document.getElementById('status').textContent =
-      '保存しました（CPT の変更は再起動後に反映されます）';
+      '保存しました（CPT・表示・共有の変更は再起動後に反映されます）';
   }).catch(function (e) {
     document.getElementById('status').textContent = '保存に失敗しました: ' + e;
+  });
+});
+
+document.getElementById('restart').addEventListener('click', function () {
+  invoke('restart_app').catch(function (e) {
+    document.getElementById('status').textContent = '再起動に失敗しました: ' + e;
   });
 });
 </script>

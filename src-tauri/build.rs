@@ -6,6 +6,8 @@ fn main() {
                 "get_settings",
                 "save_settings",
                 "restart_app",
+                "export_settings",
+                "import_settings",
             ]),
         ),
     )

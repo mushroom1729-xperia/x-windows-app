@@ -59,7 +59,7 @@
 </head>
 <body>
 <h1 id="app_title">X for Windows 設定</h1>
-<div class="ver" id="app_ver">バージョン 0.4.3</div>
+<div class="ver" id="app_ver">バージョン 0.5.0</div>
 
 <h2>メディア保存</h2>
 <p class="note">Media Harvest 風の保存設定。この設定は保存後すぐに反映されます。</p>
@@ -114,6 +114,13 @@
 <h2>左サイドバー</h2>
 <p class="note">表示する項目にチェック。変更はアプリの再起動後に反映されます。</p>
 <div id="sidebar_items"></div>
+
+<h2>バックアップ</h2>
+<p class="note">現在の設定を JSON ファイルに書き出したり、書き出したファイルから読み込んだりできます。読み込んだ設定はアプリの再起動後に反映されます。</p>
+<div>
+  <button id="export">設定をエクスポート</button>
+  <button id="import" style="margin-left:8px">設定をインポート</button>
+</div>
 
 <div class="footer">
   <button id="save">保存</button>
@@ -346,6 +353,28 @@ document.getElementById('save').addEventListener('click', function () {
 document.getElementById('restart').addEventListener('click', function () {
   invoke('restart_app').catch(function (e) {
     document.getElementById('status').textContent = '再起動に失敗しました: ' + e;
+  });
+});
+
+document.getElementById('export').addEventListener('click', function () {
+  invoke('export_settings').then(function (r) {
+    if (r === 'saved') {
+      document.getElementById('status').textContent = '設定をエクスポートしました';
+    }
+  }).catch(function (e) {
+    document.getElementById('status').textContent = 'エクスポートに失敗しました: ' + e;
+  });
+});
+
+document.getElementById('import').addEventListener('click', function () {
+  invoke('import_settings').then(function (r) {
+    if (r === 'imported') {
+      document.getElementById('status').textContent =
+        '設定を読み込みました（再起動後に反映されます）';
+      setTimeout(function () { location.reload(); }, 1000);
+    }
+  }).catch(function (e) {
+    document.getElementById('status').textContent = '読み込みに失敗しました: ' + e;
   });
 });
 </script>

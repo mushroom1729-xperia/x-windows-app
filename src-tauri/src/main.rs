@@ -326,6 +326,43 @@ fn restart_app(app: AppHandle) {
     app.restart();
 }
 
+#[tauri::command]
+async fn export_settings(state: State<'_, AppState>) -> Result<String, String> {
+    let settings = state.0.lock().unwrap().clone();
+    let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    let Some(path) = rfd::FileDialog::new()
+        .set_title("設定のエクスポート")
+        .add_filter("JSON", &["json"])
+        .set_file_name("x-windows-settings.json")
+        .save_file()
+    else {
+        return Ok("cancelled".to_string());
+    };
+    fs::write(&path, text).map_err(|e| e.to_string())?;
+    log_line(&format!("settings exported -> {}", path.display()));
+    Ok("saved".to_string())
+}
+
+#[tauri::command]
+async fn import_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let Some(path) = rfd::FileDialog::new()
+        .set_title("設定のインポート")
+        .add_filter("JSON", &["json"])
+        .pick_file()
+    else {
+        return Ok("cancelled".to_string());
+    };
+    let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let settings: Settings = serde_json::from_str(&text)
+        .map_err(|e| format!("設定ファイルの形式が正しくありません: {}", e))?;
+    save_settings(app, state, settings)?;
+    log_line(&format!("settings imported <- {}", path.display()));
+    Ok("imported".to_string())
+}
+
 fn open_settings_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
         let _ = w.show();
@@ -423,7 +460,9 @@ fn main() {
             download_media,
             get_settings,
             save_settings,
-            restart_app
+            restart_app,
+            export_settings,
+            import_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -30,7 +30,7 @@ jobs:
           releaseName: "X for Windows v__VERSION__"
           releaseBody: |
             ## 変更点
-            - 「もっと見る」メニューの中の項目にも、サイドバーの表示 / 非表示設定が効くようにした
+            - 設定のバックアップ機能を追加（設定画面の「バックアップ」から、設定を JSON ファイルにエクスポート / インポートできるように）
           releaseDraft: true
           prerelease: false
 

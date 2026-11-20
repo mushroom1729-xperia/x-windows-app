@@ -311,8 +311,13 @@ fn open_settings_window(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
+    let product = app
+        .config()
+        .product_name
+        .clone()
+        .unwrap_or_else(|| "X".to_string());
     let _ = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
-        .title("X for Windows 設定")
+        .title(format!("{} for Windows 設定", product))
         .inner_size(600.0, 780.0)
         .build();
 }
@@ -323,6 +328,11 @@ fn main() {
             let settings = load_settings(app.handle());
             let cpt = build_cpt_script(&settings);
             app.manage(AppState(Mutex::new(settings)));
+            let product = app
+                .config()
+                .product_name
+                .clone()
+                .unwrap_or_else(|| "X".to_string());
 
             let settings_item = MenuItem::with_id(app, "settings", "設定を開く", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
@@ -330,7 +340,7 @@ fn main() {
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .tooltip("X for Windows")
+                .tooltip(format!("{} for Windows", product))
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "settings" => open_settings_window(app),
                     "quit" => app.exit(0),
@@ -343,7 +353,7 @@ fn main() {
                 "main",
                 WebviewUrl::External("https://x.com".parse().unwrap()),
             )
-            .title("X")
+            .title(product.clone())
             .inner_size(1100.0, 800.0)
             .initialization_script(&cpt)
             .initialization_script(HARVEST_SCRIPT)

@@ -21,18 +21,23 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Build with Tauri
+      - name: Build X variant with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: v__VERSION__
           releaseName: "X for Windows v__VERSION__"
-          releaseBody: "X (Twitter) client for Windows with Control Panel for Twitter built in, promoted-post hiding, and one-click media downloads to Downloads/twitter_media_harvest. Download the setup exe below, or use the portable exe asset."
+          releaseBody: |
+            ## 変更点
+            - 設定画面を追加（タスクトレイのアイコン →「設定を開く」）。Control Panel for Twitter の主要オプションと、メディア保存の設定（保存先を毎回聞く / ファイル名パターン / サブフォルダ）を変更可能に（CPT の変更は再起動後に反映）
+            - 認証バッジ（鳥マーク）の重なりを修正（少し小さく表示）
+            - Twitter 版（鳥アイコン + アプリ名「Twitter」）の exe を追加。𝕏 版と中身は同じ
+            - README を日本語化
           releaseDraft: true
           prerelease: false
 
-      - name: Upload portable exe to the release
+      - name: Upload X portable exe to the release
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,3 +45,23 @@ jobs:
           $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           Copy-Item "src-tauri/target/release/x-windows-app.exe" "X-portable-$version.exe"
           gh release upload "v$version" "X-portable-$version.exe" --clobber
+
+      - name: Build Twitter variant with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: "X for Windows v__VERSION__"
+          releaseDraft: true
+          prerelease: false
+          args: --config src-tauri/tauri.twitter.json
+
+      - name: Upload Twitter portable exe to the release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          Copy-Item "src-tauri/target/release/x-windows-app.exe" "Twitter-portable-$version.exe"
+          gh release upload "v$version" "Twitter-portable-$version.exe" --clobber

@@ -17,7 +17,7 @@ X（旧 Twitter）を Windows でアプリとして使うための軽量クラ�
 
 ## ダウンロード
 
-[Releases](https://github.com/mushroom1729-xperia/x-windows-app/releases) に、ポータブル版（インストール不要）と NSIS インストーラーがあります。
+[Releases](https://github.com/mushroom1729-xperia/x-windows-app/releases) に、ポータブル版（インストール不要）と NSIS インストーラーがあります。𝕏 版（`X-portable-…` / `X_…-setup`）と Twitter 版（`Twitter-portable-…` / `Twitter_…-setup`）の2種類があり、中身は同じでアイコンとアプリ名だけが違います。
 
 ## 注意
 

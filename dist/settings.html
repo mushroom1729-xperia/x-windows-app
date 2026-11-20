@@ -58,8 +58,8 @@
 </style>
 </head>
 <body>
-<h1>X for Windows 設定</h1>
-<div class="ver">バージョン 0.2.0</div>
+<h1 id="app_title">X for Windows 設定</h1>
+<div class="ver" id="app_ver">バージョン 0.2.0</div>
 
 <h2>メディア保存</h2>
 <p class="note">Media Harvest 風の保存設定。この設定は保存後すぐに反映されます。</p>
@@ -100,6 +100,16 @@
 var invoke =
   (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) ||
   (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
+
+if (window.__TAURI__ && window.__TAURI__.app) {
+  window.__TAURI__.app.getName().then(function (n) {
+    document.getElementById('app_title').textContent = n + ' for Windows 設定';
+    document.title = n + ' for Windows 設定';
+  }).catch(function () {});
+  window.__TAURI__.app.getVersion().then(function (v) {
+    document.getElementById('app_ver').textContent = 'バージョン ' + v;
+  }).catch(function () {});
+}
 
 var CPT_TOGGLES = [
   ['alwaysUseLatestTweets', 'ホームは「フォロー中（時系列）」を既定にする', true],

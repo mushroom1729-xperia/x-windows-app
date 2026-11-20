@@ -139,7 +139,7 @@ fn main() {
             })
             .on_new_window(|url, _features| {
                 log_line(&format!("new-window intercepted: {}", url.as_str()));
-                open_external(url);
+                open_external(&url);
                 NewWindowResponse::Deny
             })
             .build()?;

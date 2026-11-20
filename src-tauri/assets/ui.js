@@ -68,53 +68,67 @@
   }
 
   // ---------- left sidebar item visibility ----------
-  var NAV_SELECTORS = {
-    home: ['header nav a[href="/home"]'],
-    explore: ['header nav a[href="/explore"]'],
-    notifications: ['header nav a[href="/notifications"]'],
-    messages: ['header nav a[href="/messages"]', 'header nav a[href="/i/chat"]'],
-    grok: ['header nav a[href="/i/grok"]'],
-    lists: ['header nav a[href$="/lists"]'],
-    bookmarks: ['header nav a[href="/bookmarks"]', 'header nav a[href="/i/bookmarks"]'],
-    communities: ['header nav a[href$="/communities"]'],
-    premium: ['header nav a[href="/premium"]', 'header nav a[href="/i/premium_sign_up"]'],
-    more: ['header nav [data-testid="AppTabBar_More_Menu"]']
+  // Items are matched by their visible label (and aria-label), which is
+  // more reliable than href patterns on the current X layout.
+  var NAV_LABELS = {
+    home: ['ホーム', 'Home'],
+    explore: ['話題を検索', '検索', 'Explore'],
+    notifications: ['通知', 'Notifications'],
+    messages: ['メッセージ', 'Messages'],
+    calls: ['通話', 'Calls'],
+    grok: ['Grok'],
+    lists: ['リスト', 'Lists'],
+    bookmarks: ['ブックマーク', 'Bookmarks'],
+    communities: ['コミュニティ', 'Communities'],
+    premium: ['プレミアム', 'Premium'],
+    creator: ['クリエイタースタジオ', 'Creator Studio'],
+    monetization: ['収益化', 'Monetization'],
+    profile: ['プロフィール', 'Profile'],
+    more: ['もっと見る', 'More']
   };
-  var KNOWN_NAV_HREFS = [
-    '/home', '/explore', '/notifications', '/messages', '/i/chat',
-    '/i/grok', '/bookmarks', '/i/bookmarks', '/premium',
-    '/i/premium_sign_up', '/settings'
-  ];
+  var NAV_HREFS = {
+    home: ['/home'],
+    explore: ['/explore'],
+    notifications: ['/notifications'],
+    messages: ['/messages', '/i/chat'],
+    calls: ['/i/calls', '/calls'],
+    grok: ['/i/grok'],
+    bookmarks: ['/bookmarks', '/i/bookmarks'],
+    premium: ['/premium', '/i/premium_sign_up'],
+    creator: ['/i/creator-studio', '/i/creator_studio', '/i/studio'],
+    monetization: ['/i/monetization', '/settings/monetization']
+  };
+  function elMatchesLabels(el, labels) {
+    var aria = (el.getAttribute('aria-label') || '').trim();
+    if (labels.indexOf(aria) >= 0) return true;
+    var spans = el.querySelectorAll('span');
+    for (var i = 0; i < spans.length; i++) {
+      if (labels.indexOf((spans[i].textContent || '').trim()) >= 0) return true;
+    }
+    return false;
+  }
   function applyNavHiding() {
     var hide = cfg.navHide || [];
     if (!hide.length) return;
-    var css = '';
-    hide.forEach(function (key) {
-      (NAV_SELECTORS[key] || []).forEach(function (sel) {
-        css += sel + ' { display: none !important; }\n';
-      });
-    });
-    if (css && !document.getElementById('xw-nav-style')) {
-      var style = document.createElement('style');
-      style.id = 'xw-nav-style';
-      style.textContent = css;
-      (document.head || document.documentElement).appendChild(style);
-    }
-    if (hide.indexOf('profile') >= 0) {
-      // The profile link's href is /<username>, so find it by elimination.
-      document
-        .querySelectorAll('header nav a[href^="/"]')
-        .forEach(function (a) {
-          var href = a.getAttribute('href') || '';
-          if (
-            /^\/[A-Za-z0-9_]{1,30}$/.test(href) &&
-            KNOWN_NAV_HREFS.indexOf(href) === -1 &&
-            !/\/(lists|communities)$/.test(href)
-          ) {
-            a.style.setProperty('display', 'none', 'important');
+    try {
+      var items = document.querySelectorAll(
+        '[role="navigation"] a[href], header a[href], [data-testid="AppTabBar_More_Menu"]'
+      );
+      items.forEach(function (el) {
+        var href = el.getAttribute('href') || '';
+        for (var i = 0; i < hide.length; i++) {
+          var key = hide[i];
+          var byHref =
+            (NAV_HREFS[key] || []).indexOf(href) >= 0 ||
+            ((key === 'lists' || key === 'communities') &&
+              href.slice(-('/' + key).length) === '/' + key);
+          if (byHref || elMatchesLabels(el, NAV_LABELS[key] || [])) {
+            el.style.setProperty('display', 'none', 'important');
+            break;
           }
-        });
-    }
+        }
+      });
+    } catch (e) {}
   }
 
   // ---------- bird logo (top-left) ----------
@@ -259,8 +273,8 @@
         } else if (m.type === 'attributes') {
           processAttrs(m.target);
         }
-        if ((cfg.navHide || []).indexOf('profile') >= 0) applyNavHiding();
       }
+      applyNavHiding();
     });
     mo.observe(document.documentElement, {
       childList: true,

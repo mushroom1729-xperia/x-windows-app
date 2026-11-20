@@ -1,6 +1,6 @@
 [package]
 name = "x-windows-app"
-version = "0.4.1"
+version = "0.4.2"
 description = "X (Twitter) client for Windows with Control Panel for Twitter, ad hiding and media downloads"
 authors = ["mushroom1729-xperia"]
 edition = "2021"

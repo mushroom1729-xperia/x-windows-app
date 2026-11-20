@@ -112,7 +112,8 @@
     if (!hide.length) return;
     try {
       var items = document.querySelectorAll(
-        '[role="navigation"] a[href], header a[href], [data-testid="AppTabBar_More_Menu"]'
+        '[role="navigation"] a[href], header a[href], [data-testid="AppTabBar_More_Menu"], ' +
+          '[role="menu"] a[href], [role="menu"] [role="menuitem"]'
       );
       items.forEach(function (el) {
         var href = el.getAttribute('href') || '';

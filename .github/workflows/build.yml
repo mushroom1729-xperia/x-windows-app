@@ -30,8 +30,7 @@ jobs:
           releaseName: "X for Windows v__VERSION__"
           releaseBody: |
             ## 変更点
-            - 左サイドバーの表示 / 非表示が効かない場合があったのを修正（項目の判定方法を変更）
-            - サイドバーの設定に「通話」「クリエイタースタジオ」「収益化」を追加
+            - 「もっと見る」メニューの中の項目にも、サイドバーの表示 / 非表示設定が効くようにした
           releaseDraft: true
           prerelease: false
 

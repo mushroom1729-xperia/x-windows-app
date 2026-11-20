@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: "X for Windows v__VERSION__"
+          releaseBody: "X (Twitter) client for Windows with Control Panel for Twitter built in, promoted-post hiding, and one-click media downloads to Downloads/twitter_media_harvest. Download the setup exe below, or use the portable exe asset."
+          releaseDraft: true
+          prerelease: false
+
+      - name: Upload portable exe to the release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          Copy-Item "src-tauri/target/release/x-windows-app.exe" "X-portable-$version.exe"
+          gh release upload "v$version" "X-portable-$version.exe" --clobber

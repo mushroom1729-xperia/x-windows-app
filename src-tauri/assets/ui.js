@@ -199,6 +199,7 @@
     }
     fixLogo(root);
     fixHomeIcon();
+    applyHideForYou();
   }
 
   var pending = [];
@@ -217,8 +218,36 @@
     }
   }
 
+  // ---------- fully hide the For You tab ----------
+  // CPT's own CSS only shrinks the tab container on the current X layout;
+  // hide the container outright and switch to the Following tab if needed.
+  var lastTabSwitch = 0;
+  function applyHideForYou() {
+    if (!cfg.hideForYou) return;
+    if (!document.getElementById('xw-foryou-style')) {
+      var style = document.createElement('style');
+      style.id = 'xw-foryou-style';
+      style.textContent =
+        'body.HomeTimeline nav.TimelineTabs div[role="tablist"] > div:first-child { display: none !important; }';
+      (document.head || document.documentElement).appendChild(style);
+    }
+    var selected = document.querySelector(
+      'nav.TimelineTabs div[role="tablist"] > div:first-child a[aria-selected="true"]'
+    );
+    if (selected && Date.now() - lastTabSwitch > 3000) {
+      var following = document.querySelector(
+        'nav.TimelineTabs div[role="tablist"] > div:nth-child(2) a'
+      );
+      if (following) {
+        lastTabSwitch = Date.now();
+        following.click();
+      }
+    }
+  }
+
   function start() {
     applyNavHiding();
+    applyHideForYou();
     processRoot(document.body || document.documentElement);
     var mo = new MutationObserver(function (muts) {
       for (var i = 0; i < muts.length; i++) {

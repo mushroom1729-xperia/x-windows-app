@@ -345,6 +345,7 @@ fn open_settings_window(app: &AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .setup(|app| {
             let settings = load_settings(app.handle());
             let cpt = build_cpt_script(&settings);
@@ -354,14 +355,20 @@ fn main() {
                 .filter(|(_, v)| v.as_bool() == Some(false))
                 .map(|(k, _)| k.clone())
                 .collect();
+            let cpt_flag = |k: &str| {
+                settings.cpt.get(k).and_then(|v| v.as_bool()) != Some(false)
+            };
+            let hide_for_you =
+                cpt_flag("alwaysUseLatestTweets") && cpt_flag("hideForYouTimeline");
             let ui_cfg = format!(
-                "window.__XW_CFG__ = {{ replaceTerms: {}, replaceLogo: {}, shareDomain: {}, navHide: {}, oldHomeIcon: {} }};",
+                "window.__XW_CFG__ = {{ replaceTerms: {}, replaceLogo: {}, shareDomain: {}, navHide: {}, oldHomeIcon: {}, hideForYou: {} }};",
                 settings.replace_terms,
                 settings.replace_logo,
                 serde_json::to_string(&settings.share_domain)
                     .unwrap_or_else(|_| "\"\"".to_string()),
                 serde_json::to_string(&nav_hide).unwrap_or_else(|_| "[]".to_string()),
-                settings.old_home_icon
+                settings.old_home_icon,
+                hide_for_you
             );
             app.manage(AppState(Mutex::new(settings)));
             let product = app
